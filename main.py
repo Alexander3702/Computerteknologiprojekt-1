@@ -29,17 +29,21 @@ def main(args=None):
 
      #setting starttime and endtime to make the robot run for specific amount of time. 
     start_time = time.time()
-    end_time = start_time + 30.0
+    end_time = start_time + 120.0
 
-    #running the robot for 30 seconds. We're updating the robot's position every 0.1 seconds.
+    #running the robot for 120 seconds. We're updating the robot's position every 0.1 seconds.
     while time.time() < end_time:
         rclpy.spin_once(turtlebot3_obstacle_detection, timeout_sec = 0.1)
-
+        turtlebot3_obstacle_detection.check_for_color()
 
    # Print final collision count if needed
     turtlebot3_obstacle_detection.get_logger().info(
         f'Total collisions detected: {turtlebot3_obstacle_detection.collision_count}'
     )
+
+    #print average speed
+    turtlebot3_obstacle_detection.get_logger().info(
+        f'Average speed is: {turtlebot3_obstacle_detection.get_average_linear_speed()} m/s')
 
     turtlebot3_obstacle_detection.stop_robot()
 
