@@ -151,21 +151,21 @@ class Turtlebot3ObstacleDetection(Node):
         elif left_min < self.stop_distance:
             # Check if far_left and farfar_left offer a path
             if far_left_min > self.stop_distance and farfar_left_min > self.stop_distance:
-                twist.linear.x = 0.10
-                twist.angular.z = -0.2  # Gentler turn
+                twist.linear.x = 0.15
+                twist.angular.z = -0.3  # Gentler turn
             else:
-                twist.linear.x = 0.10
-                twist.angular.z = -0.3  # Sharper turn
+                twist.linear.x = 0.13
+                twist.angular.z = -0.5  # Sharper turn
             self.get_logger().info('Obstacle detected on left!', throttle_duration_sec=2)
 
         elif right_min < self.stop_distance:
             # Check if far_right and farfar_right offer a path
             if far_right_min > self.stop_distance and farfar_right_min > self.stop_distance:
-                twist.linear.x = 0.10
-                twist.angular.z = 0.2  # Gentler turn
+                twist.linear.x = 0.15
+                twist.angular.z = 0.3  # Gentler turn
             else:
-                twist.linear.x = 0.10
-                twist.angular.z = 0.3  # Sharper turn
+                twist.linear.x = 0.13
+                twist.angular.z = 0.5  # Sharper turn
             self.get_logger().info('Obstacle detected on right!', throttle_duration_sec=2)
         
         else:
@@ -237,11 +237,11 @@ class Turtlebot3ObstacleDetection(Node):
     
         self.data = self.bus.read_i2c_block_data(0x44, 0x09, 6)
         self.red = (self.data[3] + self.data[2] / 256) * 1.3
-        self.blue = (self.data[5] + self.data[4] / 256) * 2
-        self.green = (self.data[1] + self.data[0] / 256) 
+        self.blue = (self.data[5] + self.data[4] / 256) * 1.75
+        self.green = (self.data[1] + self.data[0] / 256) * 0.9
 
         # Define minimum threshold for color detection
-        threshold = 75
+        threshold = 95
     
         # Detect if we have a strong color reading
         is_red = self.red > threshold and self.red > self.green and self.red > self.blue
@@ -276,6 +276,5 @@ class Turtlebot3ObstacleDetection(Node):
             self.get_logger().info('Resetting pickup state due to no colors detected')
             self.in_pickup_state = False
             self.pickup_index = 0
-        
-        print("rgb (%d, %d, %d)" % (self.red, self.green, self.blue))
+        print("RGB(red = %d, green = %d, blue = %d)" % (self.red, self.green, self.blue))
             
