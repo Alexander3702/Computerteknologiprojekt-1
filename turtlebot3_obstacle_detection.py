@@ -113,9 +113,10 @@ class Turtlebot3ObstacleDetection(Node):
             self.detect_obstacle()
 
     def detect_obstacle(self):
-
+        # Looping through the received data, to asure we don't get any false readings
         self.scan_ranges = [i if (i > 0 and i <= 3.5) else 3.5 for i in self.scan_ranges]
 
+        # Separating our code into cones
         middle = self.scan_ranges [342:360] + self.scan_ranges[0:18]
         left = self.scan_ranges[18:42]
         far_left = self.scan_ranges[42:66]
@@ -138,6 +139,7 @@ class Turtlebot3ObstacleDetection(Node):
         
         # Check each section and respond accordingly
         if middle_min < self.stop_distance:
+            # Dividing left and right into spaces, in order to determine which route is most effecient
             left_space = min(left_min, far_left_min, farfar_left_min)
             right_space = min(right_min, far_right_min, farfar_right_min)
             twist.linear.x = 0.0
@@ -149,32 +151,35 @@ class Turtlebot3ObstacleDetection(Node):
             self.get_logger().info('Obstacle detected in front! Turning.', throttle_duration_sec=2)
     
         elif left_min < self.stop_distance:
-            # Check if far_left and farfar_left offer a path
+            # Check if far_left and farfar_left are clear to make a gentler turn and keep up linear velocity
             if far_left_min > self.stop_distance and farfar_left_min > self.stop_distance:
                 twist.linear.x = 0.15
-                twist.angular.z = -0.3  # Gentler turn
+                twist.angular.z = -0.3 
             else:
+                # Do a sharper turn, since both far left and far far left are blocked as well
                 twist.linear.x = 0.13
-                twist.angular.z = -0.5  # Sharper turn
+                twist.angular.z = -0.5  
             self.get_logger().info('Obstacle detected on left!', throttle_duration_sec=2)
 
         elif right_min < self.stop_distance:
-            # Check if far_right and farfar_right offer a path
+            # Check if far_right and farfar_right are clear to make a gentler turn and keep up linear velocity
             if far_right_min > self.stop_distance and farfar_right_min > self.stop_distance:
                 twist.linear.x = 0.15
-                twist.angular.z = 0.3  # Gentler turn
+                twist.angular.z = 0.3  
             else:
+                # Do a sharper turn, since both far right and far far right are blocked as well
                 twist.linear.x = 0.13
-                twist.angular.z = 0.5  # Sharper turn
+                twist.angular.z = 0.5  
             self.get_logger().info('Obstacle detected on right!', throttle_duration_sec=2)
         
         else:
+            # No obstacle, move forward with highest velocity
             twist.linear.x = 0.2
             twist.angular.z = 0.0
             self.get_logger().info('No obstacles, driving forward', throttle_duration_sec=5)
     
     
-        # Check if any obstacle is within the stop distance
+        # Check if any obstacle is within the collision distance
         collision_detected = (
             far_right_min < self.collision_range or 
             far_left_min < self.collision_range or 
@@ -185,46 +190,55 @@ class Turtlebot3ObstacleDetection(Node):
             middle_min < self.collision_range
         )
     
-        # Only increment count when transitioning from no collision to collision
+        # Only increment count when transitioning from no collision state to collision state
         if collision_detected and not self.in_collision_state:
             self.collision_count += 1
             self.get_logger().info(f'New collision detected! Total: {self.collision_count}')
             self.in_collision_state = True
     
-        # Reset state when all obstacles are cleared
+        # Reset state when obstacles are cleared
         elif not collision_detected and self.in_collision_state:
             self.in_collision_state = False
             self.get_logger().info('Obstacle cleared')
-            
+
+        # Detect the average linear speed
         self.detect_average_linear_speed(twist.linear.x)
         # Publish the twist command
         self.cmd_vel_pub.publish(twist)
     
     def detect_average_linear_speed(self, current_speed):
+        # Function to calculate the average linear speed throughout runtime
         if current_speed != self.last_speed:
+            # Summing up the speed, when it changes in order to calculate the average
             self.speed_sum += current_speed
+            # Incrementing the speed index when we sum up a new speed
             self.speed_index += 1
+            # Setting last measured speed equal to the current speed
             self.last_speed = current_speed
-
+            
+            # Making sure we don't divide with 0
             if self.speed_index > 0:
+                # Calculating the average linear speed
                 self.average_linear_speed = self.speed_sum / self.speed_index
                 
 
     def get_average_linear_speed(self):
+        # Returning the average linear speed calculated in the detect function
         return self.average_linear_speed
 
     def detect_obstacle_collision(self):
+        # Returning the amount of total collisions counted in our collision counter
         return self.collision_count
 
 
-
+    # Function to stop the robots movement horisontal and vertical when our timer in main tells the robot to stop
     def stop_robot(self):
         twist = Twist()
         twist.linear.x = 0.0
         twist.angular.z = 0.0
         self.cmd_vel_pub.publish(twist)
         
-        # Clean up I2C bus
+        # Clean up I2C bus when the program is done running
         if hasattr(self, 'bus'):
             try:
                 self.bus.close()
@@ -233,9 +247,12 @@ class Turtlebot3ObstacleDetection(Node):
                 
         self.get_logger().info(f'Mission complete! Total victims rescued: {self.victims_picked}')
 
+    # Function to check for colors indicating victims
     def check_for_color(self):
-    
+
+        # Defining the data from the RGB sensor to the according color
         self.data = self.bus.read_i2c_block_data(0x44, 0x09, 6)
+        # Calibrating the different colors in order to make them almost equal, when we shouldn't detect a color
         self.red = (self.data[3] + self.data[2] / 256) * 1.3
         self.blue = (self.data[5] + self.data[4] / 256) * 1.75
         self.green = (self.data[1] + self.data[0] / 256) * 0.9
@@ -244,28 +261,39 @@ class Turtlebot3ObstacleDetection(Node):
         threshold = 95
     
         # Detect if we have a strong color reading
+        # Defining the readings to be a specific color, if they fulfill the requirements
         is_red = self.red > threshold and self.red > self.green and self.red > self.blue
         is_green = self.green > threshold and self.green > self.red and self.green > self.blue
         is_blue = self.blue > threshold and self.blue > self.red and self.blue > self.green
     
         if is_green or is_blue:
-            # Reset on green or blue
+            # Reset index on green or blue
             self.pickup_index = 0
+            # Setting the pickup state to false
             self.in_pickup_state = False
-            self.non_red_consecutive_count = 0
+            # Incrementing non red consecutive count as non red detected
+            self.non_red_consecutive_count += 1
+            
         
         elif is_red:
-            # Red detected
+            # Setting the non red consecutive count to 0, as red detected
             self.non_red_consecutive_count = 0
+            # Making sure we actually detect red more than once in order to prevent false pickups
             if self.pickup_index >= 4 and not self.in_pickup_state:
+                # Setting the pickup state true
                 self.in_pickup_state = True
-                # make it blink n times in the background of the program by setting the background true. 
+                # make it blink n times in the background of the program by setting the background true
                 self.led.blink(on_time = 2, off_time = 0, n = 1, background = True)
+                # Incrementing the amount of victims picked by 1
                 self.victims_picked += 1
+                # Reporting victim pickup to the terminal
                 self.get_logger().info(f'Picked up victim. Total victims picked {self.victims_picked}')
+                # Making sure a pickup isn't counted more than once
             elif self.pickup_index >= 4 and self.in_pickup_state:
+                # Reporting the victim has already been picked up
                 self.get_logger().info('Victim already picked up')
             else:
+                # Incrementing the pickup index by 1
                 self.pickup_index += 1
         else:
              # No strong color detected - increment counter
@@ -273,8 +301,11 @@ class Turtlebot3ObstacleDetection(Node):
         
         # Reset pickup state after seeing no colors for a while
         if self.non_red_consecutive_count >= self.reset_threshold and self.in_pickup_state:
+            # Resetting pickupstate since nonred colors have been detected a fair amount of time
             self.get_logger().info('Resetting pickup state due to no colors detected')
             self.in_pickup_state = False
+            # Resetting pickup index, as we have 0 continious red readings
             self.pickup_index = 0
+        # Printing the colors detected of the RGB for debugging
         print("RGB(red = %d, green = %d, blue = %d)" % (self.red, self.green, self.blue))
             
