@@ -1,0 +1,36 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "python.analysis.extraPaths": [
+            "/opt/ros/humble/lib/python3.10/site-packages",
+            "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ],
+        "terminal.integrated.env.linux": {
+            "ROS_DOMAIN_ID": "30",
+            "TURTLEBOT3_MODEL": "burger"
+        }
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "TurtleBot3 Agent (Workspace)",
+                "type": "python",
+                "request": "launch",
+                "program": "${workspaceFolder}/main.py",
+                "console": "integratedTerminal",
+                "justMyCode": false,
+                "env": {
+                    "PYTHONUNBUFFERED": "1",
+                    "ROS_DOMAIN_ID": "30",
+                    "TURTLEBOT3_MODEL": "burger"
+                }
+            }
+        ]
+    }
+}

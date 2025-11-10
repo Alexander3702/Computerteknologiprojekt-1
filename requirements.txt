@@ -1,0 +1,9 @@
+# ROS2 Dependencies (install via apt, not pip)
+# sudo apt install ros-humble-rclpy
+# sudo apt install ros-humble-geometry-msgs
+# sudo apt install ros-humble-sensor-msgs
+
+# Python dependencies that can be installed via pip
+smbus2>=0.4.1
+gpiozero>=1.6.2
+RPi.GPIO>=0.7.1
